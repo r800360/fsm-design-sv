@@ -129,7 +129,7 @@ states its expected outcome, and the script fails if any outcome differs.
 | Proof | Result |
 |---|---|
 | SR and JK detectors ≡ specification, for every input and reset sequence; S = R = 1 never occurs | proved (unbounded) |
-| Booth: `done` exactly N + k + 2 cycles after clr, product = a × b, no operation after completion; both controllers, every operand pair and clr pattern | proved (unbounded) for N = 4 (8 s) and N = 6 (≈ 17 min per controller) |
+| Booth: `done` exactly N + k + 2 cycles after clr, product = a × b, no operation after completion; both controllers, every operand pair and clr pattern | proved (unbounded) for N = 4 (8 s) and N = 6 (13–17 min per controller) |
 | Vending, empty till with locks | proved (29 s) |
 | Vending, 30 1-bills and 7/5/4-bit counters | proved (49 s) |
 | Vending, till of 31 of each bill | proved (≈ 10 min) |
