@@ -23,12 +23,16 @@ check() {  # expected tag top files params
 echo "== detector: SR and JK implementations equal the specification" | tee -a $OUT
 check PROVED detector detector_formal "$DET"
 echo "== Booth multiplier: product, exact latency N+k+2, no operation after completion" | tee -a $OUT
-for n in ${BOOTH_N:-4 6}; do
+# QUICK=1 (make formal-quick, used by CI on every push) skips the two slowest groups: Booth N = 6 and the
+# 31-bill till. TO is the time limit per proof (seconds); the default leaves room for slower CI machines.
+export TO=${TO:-5400}
+BOOTH_N=${BOOTH_N:-$([ -n "${QUICK:-}" ] && echo 4 || echo "4 6")}
+for n in $BOOTH_N; do
   check PROVED booth_mealy_n$n booth_formal "$BOOTH" "-set N $n -set MOORE 0"
   check PROVED booth_moore_n$n booth_formal "$BOOTH" "-set N $n -set MOORE 1"
 done
 echo "== vending machine: no payout from an empty till, no counter wrap, no dispensing beyond stock" | tee -a $OUT
-check PROVED vend_till31      vending_formal "$VEND" "-set N1_INIT 31 -set N3_INIT 31 -set N5_INIT 31"
+[ -n "${QUICK:-}" ] || check PROVED vend_till31      vending_formal "$VEND" "-set N1_INIT 31 -set N3_INIT 31 -set N5_INIT 31"
 check PROVED vend_locks       vending_formal "$VEND" "-set LOCKS 1 -set N1_INIT 0 -set N3_INIT 0 -set N5_INIT 0"
 check PROVED vend_min_till    vending_formal "$VEND" "-set N1_INIT 30 -set N3_INIT 0 -set N5_INIT 0 -set W1 7 -set W3 5 -set W5 4"
 echo "== negative controls: each must FAIL" | tee -a $OUT

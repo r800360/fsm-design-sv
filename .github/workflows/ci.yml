@@ -1,0 +1,49 @@
+# Quick verification on every push and pull request, on the pinned toolchain (scripts/install-tools.sh).
+# Every log, report and netlist under build/ is uploaded as the "ci-build" artifact of the run.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    container: ubuntu:26.04@sha256:f144425ff09be612d6d9ad965196e9cdc23dae1f42110a8a11a3e9a8198759f7
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the pinned toolchain
+        run: bash scripts/install-tools.sh
+      - name: Generated RTL is up to date
+        run: make check-rtl
+      - name: Lint
+        run: make lint
+      - name: Simulate (Icarus and Verilator)
+        run: make sim
+      - name: Mutation test
+        run: make mutants
+      - name: Formal (quick subset)
+        run: make formal-quick
+      - name: Synthesize
+        run: make synth
+      - name: Design-space exploration
+        run: make explore
+      - name: Summary
+        if: always()
+        run: bash scripts/summary.sh >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload build outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-build
+          path: |
+            build/
+            !build/**/obj_*/**
+            !build/**/*.vvp
+          if-no-files-found: ignore

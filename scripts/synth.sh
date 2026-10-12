@@ -11,7 +11,7 @@ printf '%-34s %6s %6s %6s %6s\n' block FFs gates inv total | tee $B/summary.txt
 one() {  # name top files [chparam]
   local name=$1 top=$2 files=$3 ch=""
   [ -n "${4:-}" ] && ch="chparam $4 $top;"
-  yosys -q -p "read_verilog -sv $files; $ch synth -top $top -flatten; abc -g gates; opt_clean; tee -q -o $B/$name.txt stat" \
+  yosys -q -p "read_verilog -sv $files; $ch synth -top $top -flatten; abc -g gates; opt_clean; tee -q -o $B/$name.txt stat; write_verilog -noattr $B/$name.v" \
     > $B/$name.log 2>&1 || { echo "$name: yosys failed (see $B/$name.log)"; return; }
   awk -v n="$name" '
     /^ +\$_/ { c=$1; v=$2; if (c ~ /DFF|DLATCH|SR_/) ff+=v; else if (c=="$_NOT_") inv+=v; else g+=v }

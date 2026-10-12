@@ -1,5 +1,5 @@
-# Sequential-circuit design in SystemVerilog: generation, lint, simulation, formal verification and synthesis.
-# Tools: Python 3, Verilator >= 5, Icarus Verilog >= 12, Yosys >= 0.30 (with yosys-abc, yosys-smtbmc) and Z3.
+# Gate-level state machines: generation, lint, simulation, formal verification, mutation testing, synthesis.
+# Toolchain: Python 3, Icarus Verilog, Verilator, Yosys + yosys-abc (exact versions in scripts/install-tools.sh).
 
 FF    := rtl/ff_primitives.sv
 BOOTH := $(FF) rtl/booth_ctrl_mealy.sv rtl/booth_ctrl_moore.sv rtl/booth_skip_mult.sv
@@ -7,9 +7,17 @@ DET   := $(FF) rtl/seq_detector_sr.sv rtl/seq_detector_jk.sv
 VEND  := rtl/vending_fsm.sv rtl/change_serializer.sv rtl/vending_machine.sv
 RUN   := bash scripts/run_sim.sh
 
-.PHONY: all rtl check-rtl lint sim sim-icarus sim-verilator exhaustive formal synth mutants explore clean
+.PHONY: all ci full summary rtl check-rtl lint sim sim-icarus sim-verilator exhaustive formal formal-quick synth \
+        mutants explore clean
 
 all: check-rtl lint sim
+
+# CI entry points (.github/workflows): `make ci` runs on every push, `make full` adds the long runs
+ci: check-rtl lint sim mutants formal-quick synth explore summary
+full: check-rtl lint sim mutants synth explore exhaustive formal summary
+
+summary:
+	@bash scripts/summary.sh > /dev/null && echo "wrote build/SUMMARY.md"
 
 # regenerate the gate-level state machines from scripts/fsms.py
 rtl:
@@ -61,6 +69,10 @@ exhaustive:
 formal:
 	bash formal/run_formal.sh
 
+# the formal campaign without Booth N = 6 and the 31-bill till (about 2 minutes)
+formal-quick:
+	QUICK=1 bash formal/run_formal.sh
+
 synth:
 	bash scripts/synth.sh
 
@@ -73,6 +85,7 @@ explore:
 	@mkdir -p build/explore
 	for s in explore_booth_controllers explore_moore explore_detector explore_detector_pick explore_vending \
 	         vending_bounds; do echo "== $$s"; python3 scripts/$$s.py > build/explore/$$s.log || exit 1; done
+	tail -n 4 build/explore/*.log > build/explore/summary.txt
 
 clean:
 	rm -rf build obj_dir scripts/__pycache__
